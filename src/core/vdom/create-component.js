@@ -33,7 +33,9 @@ import {
 } from 'weex/runtime/recycle-list/render-component-template'
 
 // inline hooks to be invoked on component VNodes during patch
+// 在patch期间在组件VNode上调用的内联钩子
 const componentVNodeHooks = {
+  //创建一个 Vue 的实例，然后调用 $mount 方法挂载子组件
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
     if (
       vnode.componentInstance &&
@@ -44,6 +46,7 @@ const componentVNodeHooks = {
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
     } else {
+      //创建vue实例
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance
@@ -98,6 +101,11 @@ const componentVNodeHooks = {
 
 const hooksToMerge = Object.keys(componentVNodeHooks)
 
+/**
+ * 构造子类构造函数
+ * 安装组件钩子函数
+ * 实例化 vnode
+ */
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,
@@ -109,14 +117,20 @@ export function createComponent (
     return
   }
 
+  //117-127 1.构造子类构造函数
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
+  //普通选项对象：将其转换为构造函数
   if (isObject(Ctor)) {
-    Ctor = baseCtor.extend(Ctor)
+    /**
+     * 组件是以export形式导出的对象，所以 createComponent 里的代码逻辑会执行到 baseCtor.extend(Ctor)，在这里 baseCtor 实际上就是 Vue，这个的定义是在最开始初始化 Vue 的阶段，在 src/core/global-api/index.js 中的 initGlobalAPI 函数写了
+     */
+    Ctor = baseCtor.extend(Ctor) //相当于Ctor = vue.extend(Ctor)
   }
 
   // if at this stage it's not a constructor or an async component factory,
+  //如果在此阶段它不是构造函数或异步组件工厂  拒绝
   // reject.
   if (typeof Ctor !== 'function') {
     if (process.env.NODE_ENV !== 'production') {
@@ -125,7 +139,7 @@ export function createComponent (
     return
   }
 
-  // async component
+  // async component  异步组件
   let asyncFactory
   if (isUndef(Ctor.cid)) {
     asyncFactory = Ctor
@@ -183,9 +197,12 @@ export function createComponent (
   }
 
   // install component management hooks onto the placeholder node
+  // 2.安装组件钩子函数
   installComponentHooks(data)
 
   // return a placeholder vnode
+  // 3.实例化 vnode
+  // 最后一步非常简单，通过 new VNode 实例化一个 vnode 并返回。需要注意的是和普通元素节点的 vnode 不同，组件的 vnode 是没有 children 的，这点很关键，在之后的 patch 过程中我们会再提。
   const name = Ctor.options.name || tag
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
@@ -202,6 +219,7 @@ export function createComponent (
     return renderRecyclableComponentTemplate(vnode)
   }
 
+  //createComponent 后返回的是组件 vnode，它也一样走到 vm._update 方法，进而执行了 patch 函数，我们在上一章对 patch 函数做了简单的分析，那么下一节我们会对它做进一步的分析。
   return vnode
 }
 
@@ -225,6 +243,9 @@ export function createComponentInstanceForVnode (
   return new vnode.componentOptions.Ctor(options)
 }
 
+//整个 installComponentHooks 的过程就是把 componentVNodeHooks 的钩子函数合并到 data.hook 中，在 VNode 执行 patch 的过程
+//中执行相关的钩子函数，具体的执行我们稍后在介绍 patch 过程中会详细介绍。这里要注意的是合并策略，在合并过程中，如果某个时机的
+//钩子已经存在 data.hook 中，
 function installComponentHooks (data: VNodeData) {
   const hooks = data.hook || (data.hook = {})
   for (let i = 0; i < hooksToMerge.length; i++) {
@@ -232,6 +253,8 @@ function installComponentHooks (data: VNodeData) {
     const existing = hooks[key]
     const toMerge = componentVNodeHooks[key]
     if (existing !== toMerge && !(existing && existing._merged)) {
+      //那么通过执行 mergeHook 函数做合并，这个逻辑很简单，就是在最终执行的时候，依次执行这两个钩子函数即可
+      // 先执行toMerge 在执行esisting
       hooks[key] = existing ? mergeHook(toMerge, existing) : toMerge
     }
   }

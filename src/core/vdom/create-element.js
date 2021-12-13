@@ -67,6 +67,10 @@ export function _createElement (
   if (isDef(data) && isDef(data.is)) {
     tag = data.is
   }
+
+  /**
+   * 对参数 tag 的判断，如果是一个普通的 html 标签，普通的 div，则会实例化一个普通 VNode 节点，否则通过 createComponent 方法创建一个组件 VNode。
+   */
   if (!tag) {
     // in case of component :is set to falsy value
     return createEmptyVNode()
@@ -145,7 +149,8 @@ export function _createElement (
         undefined, undefined, context
       )
     }
-  } else {//如果是component类型 组件类型
+  } else {
+    //如果是component类型 组件类型  将组件对象转化为vnode
     // direct component options / constructor
     vnode = createComponent(tag, data, context, children)
   }
