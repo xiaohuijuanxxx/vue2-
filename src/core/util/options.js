@@ -449,6 +449,13 @@ export function resolveAsset (
   if (typeof id !== 'string') {
     return
   }
+
+  //components组件注册时候
+  /**
+   * 如果有id那么直接拿组件id
+   * 如果没有，则将id变成驼峰形式再拿
+   * 如果还没有，将变成驼峰之后的首字母变成大写再拿
+   */
   const assets = options[type]
   // check local registration variations first
   if (hasOwn(assets, id)) return assets[id]

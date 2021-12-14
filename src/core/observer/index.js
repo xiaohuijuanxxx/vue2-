@@ -33,6 +33,7 @@ export function toggleObserving (value: boolean) {
  * object. Once attached, the observer converts the target
  * object's property keys into getter/setters that
  * collect dependencies and dispatch updates.
+ * Observer 是一个类，它的作用是===========给对象的属性添加 getter 和 setter，用于依赖收集和派发更新：===============
  */
 export class Observer {
   value: any;
@@ -43,6 +44,8 @@ export class Observer {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
+    // 给value新增一个__ob__属性，值为该value的Observer实例
+    // 相当于为value打上标记，表示它已经被转化成响应式了，避免重复操作
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
       if (hasProto) {
@@ -50,8 +53,10 @@ export class Observer {
       } else {
         copyAugment(value, arrayMethods, arrayKeys)
       }
+      //对数组调用observeArray
       this.observeArray(value)
     } else {
+      //对非数组调用
       this.walk(value)
     }
   }
@@ -60,6 +65,7 @@ export class Observer {
    * Walk through all properties and convert them into
    * getter/setters. This method should only be called when
    * value type is Object.
+   * 遍历对象，对每项进行defineEeactive,将对象变为响应式
    */
   walk (obj: Object) {
     const keys = Object.keys(obj)
@@ -70,6 +76,7 @@ export class Observer {
 
   /**
    * Observe a list of Array items.
+   * 对数组中的每一项都调用observe
    */
   observeArray (items: Array<any>) {
     for (let i = 0, l = items.length; i < l; i++) {
@@ -102,12 +109,14 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
   }
 }
 
-/**
+/* *
  * Attempt to create an observer instance for a value,
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
+ * 尝试为值创建观察者实例，如果成功观察，返回一个新的观察者实例，如果该值已经有观察者，那么返回这个观察者observer实例
  */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
+  //如果data不是对象，或者data是vnode类型，则直接返回不操作
   if (!isObject(value) || value instanceof VNode) {
     return
   }
@@ -149,6 +158,7 @@ export function defineReactive (
   // cater for pre-defined getter/setters
   const getter = property && property.get
   const setter = property && property.set
+  //如果只传了两个参数 obj 和key 那么val用obj[key]取得
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }

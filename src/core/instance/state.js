@@ -36,6 +36,11 @@ const sharedPropertyDefinition = {
   set: noop
 }
 
+/**
+ * proxy 通过 Object.defineProperty 把 target[sourceKey][key] 的读写变成了对 target[key] 的读写。
+ * 所以对于 props 而言，对 vm._props.xxx 的读写变成了 vm.xxx 的读写，而对于 vm._props.xxx 我们可以访问到定义在 props 中的属性，所以我们就可以通过 vm.xxx 访问到定义在 props 中的 xxx 属性了。
+ * 同理，对于 data 而言，对 vm._data.xxxx 的读写变成了对 vm.xxxx 的读写，而对于 vm._data.xxxx 我们可以访问到定义在 data 函数返回对象中的属性，所以我们就可以通过 vm.xxxx 访问到定义在 data 函数返回对象中的 xxxx 属性了。
+ */
 export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]
@@ -62,14 +67,20 @@ export function initState (vm: Component) {
   }
 }
 
+/**
+ * initprops做了两件事
+ * 1.用defineReactive 将props中的data变为响应式
+ * 2.用proxy把vm._props.xxx代理到vm.xxx上
+ */
 function initProps (vm: Component, propsOptions: Object) {
   const propsData = vm.$options.propsData || {}
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
+  // 缓存prop的key 将来props更新的时候可以用数组迭代，而不是动态对象枚举
   const keys = vm.$options._propKeys = []
   const isRoot = !vm.$parent
-  // root instance props should be converted
+  // root instance props should be converted 转换
   if (!isRoot) {
     toggleObserving(false)
   }
@@ -110,6 +121,10 @@ function initProps (vm: Component, propsOptions: Object) {
   toggleObserving(true)
 }
 
+/**
+ * 1.用proxy把vm._data.xxx代理到vm.xxx上
+ * 2.observe监听整个data的数据变化，并把data变为响应式
+ */
 function initData (vm: Component) {
   let data = vm.$options.data
   data = vm._data = typeof data === 'function'
