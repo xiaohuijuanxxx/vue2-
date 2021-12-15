@@ -209,6 +209,7 @@ export function mountComponent (
     }
   } else {
     updateComponent = () => {
+      //render的过程中，会触发所有数据的getter 进行依赖收集
       vm._update(vm._render(), hydrating)
     }
   }

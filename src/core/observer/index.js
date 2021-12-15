@@ -140,6 +140,8 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
 
 /**
  * Define a reactive property on an Object.
+ * 可观测的数据被获取时会触发getter属性，那么我们就可以在getter中收集这个依赖。
+ * 同样，当这个数据变化时会触发setter属性，那么我们就可以在setter中通知依赖更新
  */
 export function defineReactive (
   obj: Object,
@@ -148,6 +150,13 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+
+  //依赖管理器Dep类 把这个数据所有的依赖都管理起来（谁依赖了这个数据，就把谁放进去）
+  //代码中谁用了这个依赖，就收集谁，用的是watch类
+  /**
+   * 其实在Vue中还实现了一个叫做Watcher的类，而Watcher类的实例就是我们上面所说的那个"谁"。
+   * 换句话说就是：谁用到了数据，谁就是依赖，我们就为谁创建一个Watcher实例。在之后数据变化时，我们不直接去通知依赖更新，而是通知依赖对应的Watch实例，由Watcher实例去通知真正的视图。
+   */
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
@@ -170,6 +179,7 @@ export function defineReactive (
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
+        //=============getter 中进行 依赖收集===============
         dep.depend()
         if (childOb) {
           childOb.dep.depend()
@@ -198,6 +208,7 @@ export function defineReactive (
         val = newVal
       }
       childOb = !shallow && observe(newVal)
+      //=============setter 中进行 派发更新===============
       dep.notify()
     }
   })

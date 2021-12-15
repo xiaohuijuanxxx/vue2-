@@ -9,6 +9,11 @@ let uid = 0
 /**
  * A dep is an observable that can have multiple
  * directives subscribing to it.
+ * dep是一个可观察对象，可以有多个指令订阅它。
+ * Dep 是一个 Class，它定义了一些属性和方法，这里需要特别注意的是它有一个静态属性 target，这是一个全局唯一 Watcher，这是
+ * 个非常巧妙的设计，因为在同一时间=============只能有一个全局的 Watcher 被计算============，
+ * 另外它的自身属性 subs 也是 Watcher 的数组。
+Dep 实际上就是对 Watcher 的一种管理，Dep 脱离 Watcher 单独存在是没有意义的，为了完整地讲清楚依赖收集过程，我们有必要看一下 Watcher 的一些相关实现，它的定义在 src/core/observer/watcher.js 中
  */
 export default class Dep {
   static target: ?Watcher;
@@ -17,6 +22,7 @@ export default class Dep {
 
   constructor () {
     this.id = uid++
+    //subs用来存放依赖的数组
     this.subs = []
   }
 
@@ -24,16 +30,19 @@ export default class Dep {
     this.subs.push(sub)
   }
 
+  //删除依赖
   removeSub (sub: Watcher) {
     remove(this.subs, sub)
   }
 
+  //添加依赖
   depend () {
     if (Dep.target) {
       Dep.target.addDep(this)
     }
   }
 
+  //通知依赖更新
   notify () {
     // stabilize the subscriber list first
     const subs = this.subs.slice()
