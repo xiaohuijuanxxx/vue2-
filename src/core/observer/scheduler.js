@@ -12,6 +12,7 @@ import {
   isIE
 } from '../util/index'
 
+//观察者队列最长为100
 export const MAX_UPDATE_COUNT = 100
 
 const queue: Array<Watcher> = []
@@ -67,8 +68,10 @@ if (inBrowser && !isIE) {
 
 /**
  * Flush both queues and run the watchers.
+ * 刷新两个队列并运行观察程序。
  */
 function flushSchedulerQueue () {
+  //获取当前时间戳
   currentFlushTimestamp = getNow()
   flushing = true
   let watcher, id
@@ -81,10 +84,18 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+  /**
+   * 刷新前对队列进行排序。
+      这可确保：
+      1.组件从父级更新到子级。（因为父母总是在子组件之前创建）
+      2.组件的user watchers(用户自己写的computed 和 watcher)在其render watcher(渲染watcher)之前运行 因为前者先创建(render watcher总是最后执行，需要等数据改变之后在渲染)
+      3.如果组件在父组件的watcher运行期间被销毁，它的watcher可以跳过执行。
+   */
   queue.sort((a, b) => a.id - b.id)
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
+  // 队列遍历 拿到watcher 执行wacher.run()
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index]
     if (watcher.before) {
@@ -92,6 +103,7 @@ function flushSchedulerQueue () {
     }
     id = watcher.id
     has[id] = null
+    //执行watcher
     watcher.run()
     // in dev build, check and stop circular updates.
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
@@ -114,9 +126,12 @@ function flushSchedulerQueue () {
   const activatedQueue = activatedChildren.slice()
   const updatedQueue = queue.slice()
 
+  // 状态恢复
+  // 就是把这些控制流程状态的一些变量恢复到初始值，把 watcher 队列清空
   resetSchedulerState()
 
   // call component updated and activated hooks
+  // keepAlive 和 update的时候调用这两个队列
   callActivatedHooks(activatedQueue)
   callUpdatedHooks(updatedQueue)
 
@@ -160,17 +175,25 @@ function callActivatedHooks (queue) {
  * Push a watcher into the watcher queue.
  * Jobs with duplicate IDs will be skipped unless it's
  * pushed when the queue is being flushed.
+ * 这里引入了一个队列的概念，
+ * 这也是 Vue 在做派发更新的时候的一个优化的点，
+ * 它并不会每次数据改变都触发 watcher 的回调，
+ * 而是把这些 watcher 先添加到一个队列里，然后在 nextTick 后执行 flushSchedulerQueue。
  */
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
+  //保证每个watch只添加一次
   if (has[id] == null) {
     has[id] = true
     if (!flushing) {
+      //将watcher放入队列
       queue.push(watcher)
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      // 在遍历的时候每次都会对 queue.length 求值，因为在 watcher.run() 的时候，很可能用户会再次添加新的 watcher，这样会再次执行到 queueWatcher   
       let i = queue.length - 1
+      //从后往前找，找到第一个id大于当前id的watcher 插入到
       while (i > index && queue[i].id > watcher.id) {
         i--
       }
@@ -184,6 +207,7 @@ export function queueWatcher (watcher: Watcher) {
         flushSchedulerQueue()
         return
       }
+      //利用nextTick 执行flushSchedulerQueue
       nextTick(flushSchedulerQueue)
     }
   }

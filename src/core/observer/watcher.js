@@ -192,11 +192,16 @@ export default class Watcher {
    */
   update () {
     /* istanbul ignore else */
+    /**
+     * computed的情况，数据变化之后才会进行计算
+     * dirty就是一个开关：开关为true的时候才会进行计算
+     */
     if (this.lazy) {
       this.dirty = true
     } else if (this.sync) {
       this.run()
     } else {
+      //一般组件的数据更新都是走这个逻辑
       queueWatcher(this)
     }
   }
@@ -209,10 +214,12 @@ export default class Watcher {
     if (this.active) {
       const value = this.get()
       if (
+        // 新值旧值不同、新值是对象、deep模式则执行watcher的回调函数
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even
         // when the value is the same, because the value may
         // have mutated.
+        // 即使值相同，深度观察者和对象/数组上的观察者也应该触发，因为值可能已经发生了变化。
         isObject(value) ||
         this.deep
       ) {
@@ -221,8 +228,11 @@ export default class Watcher {
         this.value = value
         if (this.user) {
           const info = `callback for watcher "${this.expression}"`
+          // cbd代表回调函数 callback
           invokeWithErrorHandling(this.cb, this.vm, [value, oldValue], this.vm, info)
         } else {
+          // 注意回调函数执行的时候会把第一个和第二个参数传入新值 value 和旧值 oldValue，
+          // 这就是当我们添加自定义 watcher 的时候能在回调函数的参数中拿到新旧值的原因。
           this.cb.call(this.vm, value, oldValue)
         }
       }
