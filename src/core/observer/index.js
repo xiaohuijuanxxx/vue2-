@@ -48,7 +48,10 @@ export class Observer {
     // 相当于为value打上标记，表示它已经被转化成响应式了，避免重复操作
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
+      //这里的 hasProto 实际上就是判断对象中是否存在 __proto__，如果存在则 protoAugment， 否则指向 copyAugment
       if (hasProto) {
+        //大部分浏览器都会走这个逻辑
+        // arrayMehtods重写了 数组的方法，使push,pop,splice,shift,unshift,reverse,sort变成响应式的
         protoAugment(value, arrayMethods)
       } else {
         copyAugment(value, arrayMethods, arrayKeys)
@@ -220,6 +223,10 @@ export function defineReactive (
 }
 
 /**
+ * 添加一个新属性 使他变为响应式对象
+ * set 方法接收 3个参数，target 可能是数组或者是普通对象，
+ * key 代表的是数组的下标或者是对象的键值
+ * val 代表添加的值。
  * Set a property on an object. Adds the new property and
  * triggers change notification if the property doesn't
  * already exist.
@@ -230,6 +237,12 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
+  /**
+   * 首先判断如果 target 是数组且 key 是一个合法的下标，则之前通过 splice 去添加进数组然后返回，这里的 splice 其实已经不仅仅是原生数组的 splice 了，稍后我会详细介绍数组的逻辑。
+   * 接着又判断 key 已经存在于 target 中，则直接赋值返回，因为这样的变化是可以观测到了。
+   * 接着再获取到 target.__ob__ 并赋值给 ob，之前分析过它是在 Observer 的构造函数执行的时候初始化的，表示 Observer 的一个实例，如果它不存在，则说明 target 不是一个响应式的对象，则直接赋值并返回。
+   * 最后通过 defineReactive(ob.value, key, val) 把新添加的属性变成响应式对象，然后再通过 ob.dep.notify() 手动的触发依赖通知，还记得我们在给对象添加 getter 的时候有这么一段逻辑：
+   */
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)

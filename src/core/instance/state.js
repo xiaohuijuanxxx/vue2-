@@ -225,11 +225,16 @@ function initComputed (vm: Component, computed: Object) {
   }
 }
 
+/**
+ * 定义属性的getter 和 setter
+ * 然后用defineProperty给该属性添加setter 和 getter
+ */
 export function defineComputed (
   target: any,
   key: string,
   userDef: Object | Function
 ) {
+  //如果不是服务端渲染
   const shouldCache = !isServerRendering()
   if (typeof userDef === 'function') {
     sharedPropertyDefinition.get = shouldCache
@@ -256,6 +261,7 @@ export function defineComputed (
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
+// 返回这个属性对应的getter 是一个函数
 function createComputedGetter (key) {
   return function computedGetter () {
     const watcher = this._computedWatchers && this._computedWatchers[key]

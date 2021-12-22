@@ -39,6 +39,13 @@ let timerFunc
 // completely stops working after triggering a few times... so, if native
 // Promise is available, we will use it:
 /* istanbul ignore next, $flow-disable-line */
+
+/**
+ * 首先判断1：是否原生支持Promise
+ * 判断2：是否原生支持MutationObserver MutationObserver是Html5的一个新特性，用来监听目标DOM结构是否改变 ，也就是代码中新建的textNode；如果改变了就执行MutationObserver构造函数中的回调函数，不过是它是在微任务中执行的。
+ * 判断3：是否原生支持setImmediate
+ * 否则调用settimeout
+ */
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   const p = Promise.resolve()
   timerFunc = () => {
@@ -84,6 +91,11 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   }
 }
 
+/**
+ * nextTick 首先将回调函数放到callbacks中等待执行
+ * 将执行函数放到微任务或者宏任务中
+ * 执行到微任务或者宏任务的时候，执行函数一次执行callbacks中的回调
+ */
 export function nextTick (cb?: Function, ctx?: Object) {
   let _resolve
   callbacks.push(() => {
